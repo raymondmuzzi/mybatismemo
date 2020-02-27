@@ -1,0 +1,33 @@
+MyBatis工作原理
+
+接口层：
+    数据增加接口、数据删除接口、数据查询接口、数据修改接口、配置信息维护接口
+    调用方式：基于StatementID，基于Mapper接口
+
+数据处理层：
+    参数映射【ParameterHandler】
+        参数映射配置
+        参数映射解析
+        参数类型解析
+    SQL解析【SqlSource】
+        SQL语句配置
+        SQL语句解析
+        SQL语句动态生成
+    SQL执行【Executor】
+        SimpleExecutor
+        BatchExecutor
+        ReuseExecutor
+    结果处理和映射【ResultSetHandler】
+        结果映射配置
+        结果类型转换
+
+框架支撑层：
+    SQL语句配置方式【基于XML配置，基于注解配置】
+    事务管理
+    连接池管理
+    缓存机制
+
+引导层：
+    基于XML配置方式
+    基于Java API方式
+

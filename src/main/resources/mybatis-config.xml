@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+    <!--
+        1、可以使用properties标签，引入外部properties文件中的属性
+            resource:引入类路径下的资源
+            url:引入网络路径或者磁盘路径下的资源
+    -->
+    <properties resource="jdbc.properties"></properties>
+
+
+    <!--
+        2、settings是和MyBatis全局配置相关的内容，可以对MyBatis产生很大影响
+    -->
+    <settings>
+        <!-- 开启驼峰命名法 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!-- 默认为OTHER，指定null值的jdbcType，兼容Oracle这种不支持OTHER数据类型的数据库 -->
+        <setting name="jdbcTypeForNull" value="NULL"/>
+
+        <!-- 开启延迟加载模式 -->
+        <!-- 注意：我们要显式地指定我们需要更改的配置，即使他是默认的；防止版本变更带来的问题 -->
+        <setting name="lazyLoadingEnabled" value="true"/>
+        <setting name="aggressiveLazyLoading" value="false"/>
+
+        <!-- 开启二级缓存 -->
+        <setting name="cacheEnabled" value="true"/>
+    </settings>
+
+    <!--
+        3、别名处理器：可以为java类型起别名（注意：别名不区分大小写）
+    -->
+    <typeAliases>
+        <!-- 为某个java类型起别名，如果alias属性不配置，则使用employee作为别名 -->
+        <typeAlias type="com.pp.bean.Employee"/>
+
+        <!-- 批量起别名：为某个包（当前包及子包）下每一个类批量起别名；默认别名为类名小写 -->
+        <package name="com.pp.bean"/>
+
+        <!-- 当使用批量起别名，且包中有相同类名的类时，我们可以使用@Alias注解来指定该类的别名 -->
+    </typeAliases>
+
+    <!--
+        指定某种类型的数据使用何种TypeHandler对字段进行处理
+        如果我们不指定javaType，则所有的JavaType都会使用这个类型处理器
+    -->
+    <typeHandlers>
+        <!--<typeHandler handler="org.apache.ibatis.type.EnumOrdinalTypeHandler" javaType="com.pp.bean.EmployeeStatus"/>-->
+        <typeHandler handler="com.pp.handler.EmployeeStatusTypeHandler" javaType="com.pp.bean.EmployeeStatus"/>
+    </typeHandlers>
+
+    <!--
+        注册插件
+    -->
+    <!--<plugins>
+        &lt;!&ndash;<plugin interceptor="com.pp.plugin.MyPlugin">
+            <property name="username" value="root"/>
+            <property name="password" value="123456"/>
+        </plugin>
+        <plugin interceptor="com.pp.plugin.MySecondPlugin">
+            <property name="username" value="root"/>
+            <property name="password" value="123456"/>
+        </plugin>&ndash;&gt;
+        <plugin interceptor="com.pp.plugin.PageInterceptorPlugin">
+            <property name="name" value="pipi"/>
+            <property name="age" value="21"/>
+        </plugin>
+        &lt;!&ndash;<plugin interceptor="com.github.pagehelper.PageInterceptor"></plugin>&ndash;&gt;
+    </plugins>-->
+
+    <!--
+        4、MyBatis支持配置多种环境，就是通过 environments 标签支持的
+    -->
+    <environments default="development">
+        <!--
+            environment标签：
+
+                transactionManager: 事务管理器类【可选：JDBC|MANAGED|自定义（实现TransactionFactory接口）】
+
+                dataSource:         数据源【可选：UNPOOLED(不使用连接池技术,UnpooledDataSourceFactory)
+                                                |POOLED(使用连接池技术,PooledDataSourceFactory)
+                                                |JNDI(JNDI,JndiDataSourceFactory)】
+        -->
+        <environment id="sit">
+            <transactionManager type="JDBC"></transactionManager>
+            <dataSource type="POOLED">
+                <property name="driver" value="${jdbc.driver}"/>
+                <property name="url" value="${jdbc.url}"/>
+                <property name="username" value="${jdbc.username}"/>
+                <property name="password" value="${jdbc.password}"/>
+            </dataSource>
+        </environment>
+
+        <environment id="development">
+            <transactionManager type="JDBC"/>
+            <dataSource type="POOLED">
+                <property name="driver" value="${jdbc.driver}"/>
+                <property name="url" value="${jdbc.url}"/>
+                <property name="username" value="${jdbc.username}"/>
+                <property name="password" value="${jdbc.password}"/>
+            </dataSource>
+        </environment>
+    </environments>
+
+    <!--
+        5、databaseIdProvider支持多数据库厂商
+        作用：得到数据库厂商标识（驱动包中的Connection.getDatabaseProductName()）
+              MyBatis能根据数据库厂商标识来执行不同的sql
+    -->
+    <databaseIdProvider type="DB_VENDOR">
+        <!-- 为不同数据库厂商起别名 -->
+        <property name="MySQL" value="mysql"/>
+        <property name="Oracle" value="oracle"/>
+    </databaseIdProvider>
+
+
+    <!--
+        6、将sql映射注册到全局配置中：
+            mapper：需要扫描的mapper文件路径
+                resource：引用类路径下的sql映射文件
+                url：引用网络或磁盘路径下的映射文件
+                class：引用注册接口的全类名
+                    【注意几点】
+                    1、有sql映射文件，映射文件名必须和接口同名，并且放在与接口同一目录下
+                    2、没有sql映射文件，所有的sql都是利用注解写在接口上，详见：EmployeeMapperAnnotation
+                    推荐使用方案：
+                        比较重要的Dao接口，我们来写sql映射文件
+                        不重要，简单的Dao接口，为了快速开发可以使用注解版
+    -->
+    <mappers>
+        <!--<mapper resource="mybatis/mapper/EmployeeMapper.xml"/>-->
+        <!--<mapper resource="mybatis/mapper/DepartmentMapper.xml"/>-->
+        <!--<mapper class="com.pp.mapper.EmployeeMapperAnnotation"/>-->
+
+        <!-- 批量注册：需要将xxxMapper接口和xxxMapper.xml文件放在同一个包下 -->
+        <!--<package name="com.pp.mapper"/>-->
+    </mappers>
+
+    <!--
+        MyBatis缓存：MyBatis包含一个非常强大的查询缓存特性，他可以非常方便地配置和定制。缓存可以极大的提升查询效率。
+
+        MyBatis系统中默认定义了两级缓存。
+        一级缓存和二级缓存。
+        1、默认情况下，只有一级缓存开启
+            【SqlSession级别的缓存，也称为本地缓存；本质上是一个map，如果有就从map中拿，没有就去执行sql】
+            与数据库同一次会话期间查询到的数据会放在本地缓存中。
+            以后如果需要获取相同的数据，直接从缓存中拿，没有必要去查询数据库。
+            【当执行两次相同的Mapper接口中的方法时，只会发送一次请求，第二次查询的结果从缓存中获取】
+
+            一级缓存失效的场景：
+                1.1、不同的sqlSession
+                1.2、sqlSession相同，查询条件不同
+                1.3、sqlSession相同，两次查询之间执行了增删改操作（这次增删改操作可能对当前数据有影响）
+                1.4、sqlSession相同，但是手动清除了一级缓存
+
+        2、二级缓存需要手动开启和配置，他是基于namespace级别的缓存【也称为全局缓存】
+            【一个namespace对应一个二级缓存】
+            1、一个会话，查询一条数据，这个数据就会被放在当前会话的缓存中；
+            2、如果会话关闭，一级缓存的数据会保存到二级缓存中；新的会话查询信息，就可以参照二级缓存
+            3、EmployeeMapper中保存的是Employee的二级缓存信息；DepartmentMapper中保存的是Department的二级缓存信息
+               也就是不同的namespace查出的数据会放在自己对应的缓存中（map中）
+
+            使用步骤：
+                1、开启全局二级缓存 在setting中添加 cacheEnabled=true 配置，默认是开启的
+                2、去xxxMapper.xml中去配置使用二级缓存；在xxxMapper.xml中添加 <cache></cache> 标签，就在该Mapper的namespace下开启了二级缓存
+                3、由于cache中的readOnly默认为false，会使用序列化和反序列化，所以，POJO必须实现Serializable接口
+
+            查出的数据都会默认先放在一级缓存中。
+            只有会话提交或者关闭后，一级缓存的数据才会转移到二级缓存中。
+            注意：在哪个xxxMapper.xml文件中添加<cache></cache>中，哪个xxxMapper.xml的二级缓存才会生效，其他的yyyMapper.xml不会生效
+
+        和缓存有关的设置/属性：
+            1、cacheEnabled=true：默认为true，表明开启二级缓存【注意：如果设置为false，一级缓存不会被关闭】
+            2、每一个select标签都有useCache=true：如果设置为false，则关闭的是二级缓存，一级缓存不会被关闭
+            3、每个增删改标签都有flushCache=true：执行完增删改操作，就会清空缓存【一级缓存和二级缓存都会被清空】；
+                                                查询标签也有该标签，该属性默认为false，如果设置为true，每次查询之前，则会清空缓存
+            4、sqlSession.clearCache()：只会清空一级缓存中的数据，不会清空二级缓存中的数据
+            5、localCacheScope：本地缓存的作用域（默认为SESSION，可选值为：SESSION|STATEMENT），当设置为STATEMENT时，可以变相地禁用一级缓存
+
+        缓存执行的顺序：
+            二级缓存 -> 一级缓存 -> 数据库
+
+
+        3、为了提高扩展性，MyBatis定义了缓存接口Cache，我们可以通过实现Cache接口来自定义二级缓存
+
+    -->
+
+
+</configuration>

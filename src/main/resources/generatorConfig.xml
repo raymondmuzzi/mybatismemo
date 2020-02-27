@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+
+<generatorConfiguration>
+    <!--
+        targetRuntime：
+            MyBatis3Simple：生成简单版的CRUD
+            MyBatis3：生成带动态标签的复杂查询
+    -->
+    <context id="MySqlTables" targetRuntime="MyBatis3">
+
+        <commentGenerator>
+            <!-- 是否去除自动生成的注释 true：是 ： false:否 -->
+            <property name="suppressAllComments" value="true" />
+        </commentGenerator>
+
+        <!-- 如何连接到目标数据库 -->
+        <jdbcConnection driverClass="com.mysql.jdbc.Driver"
+                        connectionURL="jdbc:mysql://localhost:3306/mybatis?allowMultiQueries=true"
+                        userId="root"
+                        password="root">
+        </jdbcConnection>
+
+        <!-- Java类型解析器 -->
+        <javaTypeResolver >
+            <property name="forceBigDecimals" value="false" />
+        </javaTypeResolver>
+
+        <!--
+            JavaModelGenerator：指定JavaBean的生成策略
+                targetPackage：JavaBean生成在哪个包下
+                targetProject：JavaBean生成在哪个工程下
+        -->
+        <javaModelGenerator targetPackage="com.pp.mbg.bean" targetProject=".\src\main\java">
+            <property name="enableSubPackages" value="true" />
+            <property name="trimStrings" value="true" />
+        </javaModelGenerator>
+
+        <!--
+            SqlMapGenerator：xxxMapper.xml文件生成策略
+        -->
+        <sqlMapGenerator targetPackage="com.pp.mbg.xml"  targetProject=".\src\main\java">
+            <property name="enableSubPackages" value="true" />
+        </sqlMapGenerator>
+
+        <!--
+            JavaClientGenerator：xxxMapper接口生成策略
+        -->
+        <javaClientGenerator type="XMLMAPPER" targetPackage="com.pp.mbg.dao"  targetProject=".\src\main\java">
+            <property name="enableSubPackages" value="true" />
+        </javaClientGenerator>
+
+        <!--
+            指定要你想生成哪些表：根据表创建JavaBean
+        -->
+        <table tableName="tbl_dept" domainObjectName="Department" ></table>
+        <table tableName="tbl_employee" domainObjectName="Employee" ></table>
+
+    </context>
+</generatorConfiguration>

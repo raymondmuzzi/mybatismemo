@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- namespace：名称空间，必须指定为接口的全类名 -->
+<mapper namespace="com.pp.mapper.DepartmentMapper">
+    <!--
+        引用缓存，可以复用别的模块的缓存
+        namespace：指定使用哪个名称空间下一样的的缓存
+    -->
+    <cache-ref namespace="com.pp.mapper.EmployeeMapper"/>
+
+    <select id="getDepartmentById" resultType="com.pp.bean.Department">
+        select id,dept_name departmentName from tbl_dept
+        where id = #{id}
+    </select>
+
+    <!--
+        查询部门信息的时候，将部门中对应的所有员工也查询出来
+    -->
+    <resultMap id="DepartmentResultMap" type="com.pp.bean.Department">
+        <id column="did" property="id"/>
+        <result column="dept_name" property="departmentName"/>
+        <!--
+            由于employeeList是集合属性
+                collection：定义关联结合类型的属性规则【也就是Department中employeeList属性】
+                ofType：集合中数据类型
+        -->
+        <collection property="employeeList" ofType="com.pp.bean.Employee">
+            <!--
+                在collection中定义元素的封装规则
+            -->
+            <id column="eid" property="id"/>
+            <result column="last_name" property="lastName"/>
+            <result column="gender" property="gender"/>
+            <result column="email" property="email"/>
+        </collection>
+    </resultMap>
+    <!-- 使用一步查询，而不是分步查询 -->
+    <select id="getDepartmentWithEmployeeListById" resultMap="DepartmentResultMap">
+        select
+            d.id did,
+            d.dept_name dept_name,
+            e.id eid,
+            e.last_name last_name,
+            e.email email,
+            e.gender gender
+        from
+            tbl_dept d
+        left join
+            tbl_employee e
+        on
+            e.d_id = d.id
+        where
+            d.id = #{id}
+    </select>
+
+    <!--
+        分步查询：先查询所有符合条件的Department信息，再根据Department信息，去Employee表中查询该部门的所有员工
+    -->
+    <!--
+        扩展：
+        1、当association或者collection标签中的column需要有多个列传递过去，需要将多列的值封装成map传递
+        例如：
+            column="{key1=column1, keys2=column2}"
+            解释：将外层select标签 取到的column2的值赋值给key2，再将key2的值传递给collection的select语句中
+
+        2、在collection标签中，可以定义fetchType，可取值为：eager【提前加载】、lazy【懒加载】
+           该标签会覆盖全局配置的 lazyLoadingEnabled 和 aggressiveLazyLoading 配置。
+    -->
+    <resultMap id="DepartmentStepResultMap" type="com.pp.bean.Department">
+        <id column="id" property="id"/>
+        <result column="dept_name" property="departmentName"/>
+        <collection property="employeeList"
+                    select="com.pp.mapper.EmployeeMapper.getEmployeeListByDepartmentId"
+                    column="{did=id}"
+                    fetchType="lazy">
+        </collection>
+    </resultMap>
+    <select id="getDepartmentWithEmployeeListStep" resultMap="DepartmentStepResultMap">
+        select id, dept_name
+        from tbl_dept where id = #{id}
+    </select>
+
+</mapper>

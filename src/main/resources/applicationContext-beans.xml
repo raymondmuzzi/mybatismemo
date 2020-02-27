@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+       xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
+
+    <!-- 不扫描@Controller注解 -->
+    <context:component-scan base-package="com.pp">
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+
+    <!-- spring用来控制业务逻辑 -->
+
+    <!-- 引入jdbc配置文件 -->
+    <context:property-placeholder location="classpath:jdbc.properties"/>
+
+    <!-- 数据源 -->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="username" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+        <property name="driverClassName" value="${jdbc.driver}"/>
+        <property name="url" value="${jdbc.url}"/>
+    </bean>
+
+    <!-- 事务管理器 -->
+    <bean class="org.springframework.jdbc.datasource.DataSourceTransactionManager" id="dataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!-- 开启基于注解的事务 -->
+    <tx:annotation-driven transaction-manager="dataSourceTransactionManager"/>
+
+    <!-- 整合mybatis -->
+
+    <!--
+        使用spring来负责SqlSession的创建与销毁
+        注意：很多与MyBatis配置相关的属性，都是在SqlSessionFactoryBean中实现的！！！
+    -->
+    <bean id="sqlSessionFactoryBean" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <!-- typeAliasesPackage：别名扫描的包 -->
+        <property name="typeAliasesPackage" value="com.pp.bean"/>
+        <!-- configLocation：指定全局配置文件的路径 -->
+        <property name="configLocation" value="classpath:mybatis-config.xml"/>
+        <!-- mapperLocations：指定xxxMapper.xml文件的路径 -->
+        <property name="mapperLocations" value="classpath:/mybatis/mapper/**/*.xml"/>
+        <!-- 执行需要使用的Plugin -->
+        <!--<property name="plugins">
+            <list>
+                <ref bean="myBatisPlugin"/>
+            </list>
+        </property>-->
+    </bean>
+
+    <!--
+        指定该SqlSession的执行方式为Batch类型
+    -->
+    <bean class="org.mybatis.spring.SqlSessionTemplate" id="sqlSessionTemplate">
+        <constructor-arg name="sqlSessionFactory" ref="sqlSessionFactoryBean"/>
+        <constructor-arg name="executorType" value="BATCH"/>
+    </bean>
+
+    <!--
+        扫描所有的mapper接口实现，让这些mapper能够自动注入
+            base-package：指定mapper接口的包名
+    -->
+    <!--<mybatis-spring:scan base-package="com.pp.mapper"/>-->
+
+    <!-- 同样，可以使用MapperScanConfigurer来配置Mapper接口的扫描路径 -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactoryBean"/>
+        <property name="basePackage" value="com.pp.mapper"/>
+    </bean>
+
+
+    <bean class="com.pp.service.impl.BatchServiceImpl"/>
+
+</beans>

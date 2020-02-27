@@ -1,0 +1,676 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- namespace：名称空间，必须指定为接口的全类名 -->
+<mapper namespace="com.pp.mapper.EmployeeMapper">
+    <!-- 使用MyBatis自带的二级缓存 -->
+    <!--<cache eviction="FIFO" size="100000" flushInterval="600000" readOnly="false"></cache>-->
+    <!--
+        开启二级缓存：
+            使用<cache></cache>标签就可以开启在指定的namespace下开启二级缓存
+            eviction：缓存回收策略
+                LRU：最近最少使用【移除最长时间不被使用的对象】
+                FIFO：先进先出【按对象进入缓存的顺序来移除他们】
+                SOFT：软引用【移除基于垃圾回收器和软引用规则的对象】
+                WEAK：弱引用【更积极地移除基于垃圾回收期状态和弱引用规则的对象】
+                默认使用的是LRU
+            size：缓存存放多少数据
+            flushInterval：缓存刷新规则【缓存多长时间清空一次，默认是不清空，单位ms】
+            readOnly：缓存是否只读【默认使用的是非只读】
+                【只读：MyBatis认为所有从缓存中获取数据的操作都是只读操作，不会修改数据。
+                MyBatis为了加快获取速度，直接会将数据放在缓存中的引用交给用户。不安全，但是速度快】
+                【非只读：MyBatis认为获取的数据可能会被修改
+                MyBatis会利用序列化和反序列化的技术克隆一份新的数据给你。安全，但是速度慢】
+            type：指定自定义缓存的全类名。【如果希望自己实现缓存，可以通过实现Cache接口进行自定义】
+    -->
+
+    <!--
+        使用Ehcache作为二级缓存，整合MyBatis：
+            1、导入第三方缓存包即可
+            2、导入与第三方缓存整合的适配包
+            3、xxxMapper.xml文件中使用第三方缓存
+    -->
+    <!--<cache type="org.mybatis.caches.ehcache.EhcacheCache">
+        <property name="timeToIdleSeconds" value="3600"/>
+        <property name="timeToLiveSeconds" value="3600"/>
+        <property name="maxEntriesLocalHeap" value="1000"/>
+        <property name="maxEntriesLocalDisk" value="10000000"/>
+        <property name="memoryStoreEvictionPolicy" value="LRU"/>
+    </cache>-->
+
+
+    <!--
+        resultMap：数据库列名与JavaBean字段映射关系标签
+    -->
+    <resultMap id="EmployeeResultMap" type="com.pp.bean.Employee">
+        <!--
+            指定主键列的封装规则
+            id定义主键会在底层有优化
+        -->
+        <id property="id" column="id"/>
+        <!--
+            result：定义普通列封装规则
+        -->
+        <result property="lastName" column="last_name"/>
+        <!--
+            其他不指定的列会进行自动封装
+            但是我们只要写resultMap，就要把result标签全写上
+        -->
+        <result property="gender" column="gender"/>
+        <result property="email" column="email"/>
+
+    </resultMap>
+    <!--
+        id：sql语句唯一标识
+        resultType：返回值类型
+        parameterType：可以不用写
+        #{id}：从传递过来的参数中取id值
+
+    -->
+    <!--<select id="selectEmp" resultType="employee" databaseId="mysql">
+        select * from tbl_employee where id = #{id}
+    </select>-->
+
+    <!--
+        com.pp.mapper.EmployeeMapper.getEmployeeById
+    -->
+    <select id="getEmployeeById" resultType="employee" databaseId="mysql">
+        select id, last_name lastName, gender, email from tbl_employee where id = #{id}
+    </select>
+
+    <select id="getAllEmployees" resultMap="EmployeeResultMap">
+        select * from tbl_employee
+    </select>
+
+    <!--
+    多个参数的查询操作
+        方式1：
+        当方法参数有多个时，MyBatis会进行特殊处理：
+        多个参数会被封装成一个Map：
+            key：param1, param2, ... , paramN
+            value：传入的参数值
+        所以，取值的时候，需要使用#{param1} #{param2} 这种方式进行取值
+    -->
+    <!--<select id="getEmployeeByIdAndLastName" resultType="employee" databaseId="mysql">
+        select id, last_name lastName, gender, email
+        from tbl_employee
+        where id = #{param1} and last_name = #{param2}
+    </select>-->
+
+    <!--
+        方式2：
+        由于上述方式过于丑陋，可以使用"命名参数"的方式，明确指定封装时，Map的key：
+            Employee getEmployeeByIdAndLastName(@Param("id") int id, @Param("lastName") String lastName);
+            通过使用@Param注解，明确指定Map的key
+                key：使用@Param注解指定的值
+                value：传入的参数值
+            取值的时候，使用#{key}来获取值
+    -->
+    <select id="getEmployeeByIdAndLastName" resultType="employee" databaseId="mysql">
+        select id, last_name lastName, gender, email
+        from tbl_employee
+        where id = #{id} and last_name = #{lastName}
+    </select>
+
+    <!--
+    POJO：
+        如果多个参数正好是我们业务逻辑的数据模型，我们就可以直接传入pojo
+            #{属性名}：取出传入的pojo的属性值
+
+        如果多个参数不是业务模型中的数据，没有对应的pojo，为了方便，我们也可以传入map
+    -->
+    <select id="getEmployeeByPojo" resultType="employee" parameterType="employee">
+        select id, last_name lastName, gender, email
+        from tbl_employee
+        where id = #{id} and last_name = #{lastName}
+    </select>
+
+    <!--
+    Map：
+        如果多个参数不是业务模型中的数据，没有对因的pojo，不经常使用，为了方便，我们也可以传入map
+        #{key}：取出map中对应的值
+
+    DTO：
+        如果多个参数不是业务模型中的数据，但是要经常使用，推荐编写一个DTO（Data Transfer Object）数据传输对象
+    -->
+    <select id="getEmployeeByMap" resultType="employee" parameterType="map">
+        select id, last_name lastName, gender, email
+        from tbl_employee
+        where id = #{id} and last_name = #{lastName}
+    </select>
+    <!--
+    其他取值方式：
+
+    public Employee getEmployee(@Param("id")int id, String lastName){}
+    取值：id           ==》 #{id} 或 #{param1}
+         lastName     ==》 #{param2}
+
+    public Employee getEmployee(int id, @Param Employee employee){}
+    取值：id           ==》 #{param1}
+         lastName     ==》 #{param2.lastName} 或 #{e.lastName}
+
+    特别注意：如果参数列表是Collection（List、Set）类型或者数组，会进行特殊处理；
+    也就是把传入的list或者数组封装在map中：如果是List，map的key为list；如果是数组，map的key为array
+
+    public List<Employee> getEmployeesByIds(List<Integer> ids){}
+    取值：第一个id的值   ==》 #{list[0]}
+    -->
+
+    <!--
+    ${}与#{}的区别：
+    mapper：select id, last_name lastName, gender, email from tbl_employee where id = #{id} and last_name = #{lastName}
+    sql：   select id, last_name lastName, gender, email from tbl_employee where id = #{id} and last_name = #{lastName}
+
+    两者都可以获取map或者pojo对象的属性值
+        #{}:是以预编译的形式，将参数设置到sql语句中；PreparedStatement；防止sql注入
+        ${}:取出的值直接拼装在sql语句中；会有安全问题
+        大多数情况下，我们取参数的值都应使用#{}；
+
+        有些特殊情况，也需要使用${}：
+            原生jdbc不支持占位符的地方我们就可以使用${}，比如：表名，排序等等
+            比如，按照年份分表拆分：
+                select * from ${year}_salary where xxxxx;
+                select * from tbl_employee order by ${} ${}
+    -->
+    <select id="getEmployeeTestDollarBracket" resultType="com.pp.bean.Employee">
+        select * from ${tableName} where id = #{id} and last_name = #{lastName}
+    </select>
+
+    <!--
+    #{}更丰富的用法：
+        可以规定参数的一些规则：
+        javaType，jdbcType，mode，numericScale
+
+        jdbcType通常需要在某种特定的条件下被设置：
+            在我们数据为null的时候，有些数据库可能不能识别MyBatis对null的默认处理：比如Oracle（报错）；
+            会报错：JdbcType OTHER：无效的类型；因为MyBatis对所有的null都映射到是原生Jdbc的OTHER类型，Oracle不能正确处理
+
+            解决方案：
+                1、在sql中，指定jdbcType=NULL：last_name = #{lastName,jdbcType=NULL}
+                2、在mybatis-config.xml中的setting标签中，指定jdbcTypeForNull=NULL
+
+    -->
+
+    <!--
+
+    select标签：
+
+    利用like，进行模糊查询，并返回List<Employee>
+    List<Employee> getEmployeesByLastNameLike(String lastName);
+    -->
+    <select id="getEmployeesByLastNameLike" resultType="employee">
+        select * from tbl_employee where last_name like concat('%',#{lastName},'%')
+    </select>
+
+    <!--
+        返回Map，以列名为key，该列名对应的值为value
+    -->
+    <select id="getEmployeeReturnMap" resultType="map">
+        select * from tbl_employee where last_name = #{lastName}
+    </select>
+
+    <!--
+        多条记录封装成一个map：Map<Integer,Employee>：键是这条记录的主键，值是记录封装后的JavaBean
+        在Mapper接口中使用@MapKey注解，指定key的字段列
+    -->
+    <select id="getEmployeeReturnMultiMap" resultType="employee">
+        select * from tbl_employee where last_name like concat('%',#{lastName},'%')
+    </select>
+
+    <!--
+        使用ResultMap查询数据
+    -->
+    <select id="getEmployeeUseResultMap" resultMap="EmployeeResultMap">
+        select * from tbl_employee where last_name = #{lastName}
+    </select>
+
+    <!--
+        查询员工时，将其部门信息也查出来
+
+        查询出来的结果为：
+            id	last_name	gender	d_id	did	dept_name
+            1	tom	1	1	1	开发部
+
+        为了封装数据，需要自定义ResultMap
+
+    -->
+    <!--
+        联合查询【方式一】
+            使用级联属性封装结果
+
+    -->
+    <resultMap id="EmployeeDeptResultMap" type="com.pp.bean.Employee">
+        <id column="id" property="id"/>
+        <result column="last_name" property="lastName"/>
+        <result column="gender" property="gender"/>
+        <result column="email" property="email"/>
+        <result column="did" property="department.id"/>
+        <result column="dept_name" property="department.departmentName"/>
+    </resultMap>
+    <select id="getEmployeeAndDepartmentById" resultMap="EmployeeDeptResultMap">
+        select
+            e.id id,
+            e.last_name last_name,
+            e.gender gender,
+            e.d_id d_id,
+            e.email email,
+            d.id did,
+            d.dept_name dept_name
+        from
+            tbl_employee e,tbl_dept d
+        where
+            e.d_id = d.id and e.id = #{id};
+    </select>
+
+    <!--
+        联合查询【方式二】
+            使用association标签指定联合的JavaBean对象
+            property="department"：指定那个属性是联合的对象
+    -->
+    <resultMap id="EmployeeDeptResultMap2" type="com.pp.bean.Employee">
+        <id column="id" property="id"/>
+        <result column="last_name" property="lastName"/>
+        <result column="gender" property="gender"/>
+        <result column="email" property="email"/>
+
+        <!--
+            association指定联合的JavaBean对象
+                property：指定被联合对象在Employee对象中的属性名
+                javaType：指定该对象的类型【该类型万万不可省略】
+        -->
+        <association property="department" javaType="com.pp.bean.Department">
+            <id column="did" property="id"></id>
+            <result column="dept_name" property="departmentName"/>
+        </association>
+    </resultMap>
+    <select id="getEmployeeAndDepartmentById2" resultMap="EmployeeDeptResultMap2">
+        select
+            e.id id,
+            e.last_name last_name,
+            e.gender gender,
+            e.d_id d_id,
+            e.email email,
+            d.id did,
+            d.dept_name dept_name
+        from
+            tbl_employee e,tbl_dept d
+        where
+            e.d_id = d.id and e.id = #{id};
+    </select>
+
+
+    <!--
+        联合查询【方式三：分步查询】
+
+        使用association进行分步查询：
+            1、先按照员工id查询员工信息
+            2、根据查询员工信息中的d_id去部门表中查出部门信息
+            3、将部门信息设置到员工表中
+
+    -->
+    <resultMap id="EmployeeDeptStepResultMap" type="com.pp.bean.Employee">
+        <id column="id" property="id"/>
+        <result column="last_name" property="lastName"/>
+        <result column="email" property="email"/>
+        <result column="gender" property="gender"/>
+        <!--
+            使用association定义关联对象的封装规则
+                select：表名当前属性是调用select指定的方法；调用规则：namespace.select语句的id
+                column：指定将哪一列的值传递给这个方法
+
+            流程总结：使用select指定的方法【传入column指定的这列参数的值】查出对象，并封装给property指定的属性
+        -->
+        <association property="department"
+                     select="com.pp.mapper.DepartmentMapper.getDepartmentById"
+                     column="d_id">
+        </association>
+    </resultMap>
+    <select id="getEmployeeByIdStep" resultMap="EmployeeDeptStepResultMap">
+        select * from tbl_employee where id = #{id}
+    </select>
+
+    <!--
+        联合查询【方式四：分步查询 + 延迟加载】
+            我们查询Employee时，会将Department一起查询出来，但是，有时候我们并不需要部门信息
+            所以，MyBatis支持延迟加载，只有当我们需要部门信息的时候再去查询部门信息
+
+        配置方式：
+            在mybatis-config.xml中添加settings：
+                lazyLoadingEnabled=true
+                aggressiveLazyLoading=false
+    -->
+
+    <!--
+        按照部门id，查询该部门的所有员工
+    -->
+    <select id="getEmployeeListByDepartmentId" resultMap="EmployeeResultMap">
+        select
+          *
+        from
+          tbl_employee
+        where
+          d_id = #{did}
+    </select>
+
+    <!--
+        扩展：当association标签中的column需要有多个列传递过去，需要将多列的值封装成map传递
+        例如：
+            column="{key1=column1, keys2=column2}"
+    -->
+
+    <!--
+        collections标签中的<discriminator>：
+            鉴别器，MyBatis可以使用discriminator判断某列的值，然后根据某列的值的变化，改变封装行为
+
+            封装Employee：
+                如果查询出来的是女生，就把部门信息查询出来，否则不查询
+                如果查询出来的是男生，酒吧last_name查询出来赋值给email
+    -->
+    <resultMap id="EmployeeResultMapDiscriminator" type="com.pp.bean.Employee">
+        <id column="id" property="id"/>
+        <result column="last_name" property="lastName"/>
+        <result column="email" property="email"/>
+        <result column="gender" property="gender"/>
+        <!--
+            column：指定判定的列名
+            javaType：列值对应的java类型
+        -->
+        <discriminator javaType="string" column="gender">
+            <!-- 女生：【resultType或者resultMap二选一，不能缺少】 -->
+            <case value="0" resultType="com.pp.bean.Employee">
+                <association property="department"
+                             select="com.pp.mapper.DepartmentMapper.getDepartmentById"
+                             column="d_id">
+                </association>
+            </case>
+            <!-- 男生 -->
+            <case value="1" resultType="com.pp.bean.Employee">
+                <id column="id" property="id"/>
+                <result column="last_name" property="lastName"/>
+                <result column="last_name" property="email"/>
+            </case>
+        </discriminator>
+    </resultMap>
+    <select id="getEmployeeByIdDiscriminator" resultMap="EmployeeResultMapDiscriminator">
+        select
+          *
+        from
+          tbl_employee
+        where
+          id = #{id}
+    </select>
+
+    <!-- 添加方法 -->
+    <!-- 获取自增主键的值 -->
+    <!--
+        MySql支持自增主键，自增主键的获取也是利用Statement.getGeneratedKeys();方法来获取到的
+                useGeneratedKeys="true"：使用自增主键获取主键值策略
+                keyProperty：指定对应的主键属性，也就是MyBatis获取到主键值以后，将这个值封装给JavaBean的哪个属性
+    -->
+    <insert id="addEmployee" parameterType="com.pp.bean.Employee"
+            useGeneratedKeys="true" keyProperty="id" databaseId="mysql">
+        insert into tbl_employee(last_name,email,gender,empStatus)
+        values(#{lastName},#{email},#{gender},#{employeeStatus})
+    </insert>
+    <!--
+        Oracle不支持自增主键，Oracle使用序列来模拟自增；
+        每次插入的数据的主键是从序列中拿到的值，如何获取到这个值？
+    -->
+    <insert id="addEmployee" parameterType="com.pp.bean.Employee" databaseId="oracle">
+        <!--
+            keyProperty：查出的主键值封装给JavaBean的哪个属性
+            order：当前sql在插入sql之前/之后运行
+            resultType：查出数据的返回值类型
+        -->
+        <selectKey keyProperty="id" order="BEFORE" resultType="int">
+            <!-- 编写查询主键的sql语句 -->
+            select EMPLOYEES_SEQ.nextval from dual
+        </selectKey>
+
+        <!-- 插入时的主键是从序列中拿到的 -->
+        insert into EMPLOYEES(EMPLOYEE_ID,LAST_NAME,EMAIL)
+        values(#{id},#{lastName},#{email})
+    </insert>
+
+    <!-- 更新方法 -->
+    <update id="updateEmployee" parameterType="com.pp.bean.Employee">
+        update tbl_employee
+        set last_name = #{lastName}, gender = #{gender}, email = #{email}
+        where id = #{id}
+    </update>
+
+    <!-- 删除方法 -->
+    <delete id="deleteEmployeeById">
+        delete from tbl_employee where id = #{id}
+    </delete>
+
+
+    <!--
+    =============== 动态sql ===============
+    -->
+    <!--
+        动态sql标签：
+            1、if
+            2、choose（when，otherwise）
+            3、trim（where，set）
+            4、foreach
+    -->
+    <!--
+        以下为案例 ======》
+    -->
+
+    <!--
+        if和where
+        where：用来封装wehre查询条件
+        查询员工，要求：携带了哪个字段，查询条件就带上这个字段的值
+    -->
+    <select id="getEmployeeListByConditionIf" resultType="com.pp.bean.Employee">
+        select * from tbl_employee
+        <!-- 使用where标签，去除多余的and或者or -->
+        <!--
+            prefix:在trim标签体中添加的前缀
+            prefixOverrides:替换trim标签体前缀的内容为空
+            suffix:在trim标签体中添加的后缀
+            suffixOverrides:替换trim标签体后缀的内容为空
+        -->
+        <trim prefix="where" suffix="" suffixOverrides="and">
+            <!--
+                if:test：编写判断条件表达式【OGNL表达式】
+                从参数中取值进行判断
+            -->
+            <if test="id != null">
+                id = #{id} and
+            </if>
+            <if test="lastName != null and lastName != ''">
+                last_name like concat('%',#{lastName},'%') and
+            </if>
+            <if test="email != null &amp;&amp; email.trim() != &quot;&quot;">
+                email = #{email} and
+            </if>
+            <!-- OGNL会进行字符串与数字的转换判断 -->
+            <if test="gender=='0' or gender=='1'">
+                gender = #{gender}
+            </if>
+        </trim>
+    </select>
+
+    <!--
+        choose（when，otherwise）：分支选择，也就是java中的switch case
+        案例：如果带了id，就用id查询；如果带了lastName就用lastName查询
+        只会进入到其中一个分支。
+    -->
+    <select id="getEmployeeListByConditionOtherwise" resultType="com.pp.bean.Employee">
+        select * from tbl_employee
+        <where>
+            <choose>
+                <when test="lastName != null">
+                    last_name like concat('%',#{lastName},'%')
+                </when>
+                <when test="email != null">
+                    email = #{email}
+                </when>
+                <otherwise>
+                    1=1
+                </otherwise>
+            </choose>
+        </where>
+    </select>
+
+    <!--
+        使用set标签，替换set，可以自动去除,
+    -->
+    <update id="updateEmployeeBySet">
+        update tbl_employee
+        <set>
+            <if test="lastName != null">
+                last_name = #{lastName},
+            </if>
+            <if test="email != null">
+                email = #{email},
+            </if>
+            <!-- 对于char类型的数据要格外小心，一定要判断 !='' -->
+            <if test="gender != null and gender != ''">
+                gender = #{gender}
+            </if>
+        </set>
+        <where>
+            id = #{id}
+        </where>
+    </update>
+
+    <!--
+        在select update delete insert语句中使用foreach标签，遍历入参的集合数据
+    -->
+    <select id="getEmployeeListByConditionForeach" resultType="com.pp.bean.Employee">
+        select * from tbl_employee where id in
+        <!--
+            collection：指定要遍历的集合
+            item：将遍历的元素赋值给指定的变量
+            seperator：每个元素之间的分隔符
+            open：遍历出所有结果拼接一个开始的字符
+            close：遍历出所有结果拼接一个结束的字符
+            index：索引。【遍历list的时候，index表示的是索引，item就是当前的值；
+                          遍历map的时候index表示的是map的key，item表示的是map的value】
+        -->
+        <foreach collection="ids" item="item_id" separator="," open="(" close=")">
+            #{item_id}
+        </foreach>
+    </select>
+
+    <!--
+        foreach标签也可以用来实现批量保存功能
+        MySql批量保存：可以使用foreach遍历 MySql支持这种语法：values(),(),()
+    -->
+    <insert id="addEmployeeList">
+        insert into tbl_employee(last_name,gender,email,d_id)
+        value
+        <foreach collection="employeeList" separator="," item="employee">
+            (#{employee.lastName},#{employee.gender},#{employee.email},#{employee.department.id})
+        </foreach>
+    </insert>
+
+    <!--
+        同样，可以利用foreach循环多个insert语句；
+        但是需要开启jdbc配置：allowMultiQueries=true 设置
+        这种分号分隔多个sql可以用于其它的批量操作
+    -->
+    <insert id="addEmployeeList2">
+        <foreach collection="employeeList" item="employee">
+            insert into tbl_employee(last_name,email,gender,d_id)
+            values(#{employee.lastName},#{employee.email},#{employee.gender},#{employee.department.id});
+        </foreach>
+    </insert>
+
+    <!--
+        两个内置参数：
+            不只是方法传递过来的参数可以用来判断，取值
+            MyBatis还有两个内置参数：_parameter和_databaseId
+
+            _parameter：
+                单个参数：_parameter就是这个参数
+                多个参数：参数会被封装成一个map；_parameter就是代表这个map
+
+            _databaseId：
+                如果配置了DatabaseIdProvider标签，_databaseId就是代表当前数据库的别名
+
+    -->
+    <insert id="addEmployeesTestInnerParameter">
+        insert into tbl_employee(last_name,email,gender)
+        <if test="_parameter.gender=='1'">
+            values(#{_parameter.lastName},#{_databaseId},#{_parameter.gender})
+        </if>
+        <if test="_parameter.gender=='0'">
+            values(#{_parameter.lastName},#{_databaseId},#{_parameter.gender})
+        </if>
+    </insert>
+
+    <!--
+        使用bind标签进行模糊查询
+    -->
+    <select id="getEmployeeByBind" resultType="com.pp.bean.Employee">
+        <!-- bind：可以将OGNL表达式的值绑定到一个变量中，方便后来因引用这个变量的值 -->
+        <bind name="_last_name" value="'%'+lastName+'%'"/>
+        select * from tbl_employee where last_name like #{_last_name}
+    </select>
+
+    <!--
+        sql：抽取可重用的sql片段，方便后面的引用
+        1、sql抽取：经常将要查询的列名，或者插入用的列名抽取出来方便引用
+        2、使用include标签引用sql片段
+        3、在sql片段中，还可以使用if标签进行判断
+        4、include标签中还可以自定义一些property，sql标签内部就能使用这些property，例子：
+            <sql id="selectSql">
+                last_name,gender,email,${pid}   【注意：要使用${}而不是#{}】
+            </sql>
+            <include refid="selectSql">
+                <property name="pid" value="aaa"/>
+            </include>
+    -->
+    <sql id="BaseColumn">
+        <if test="_databaseId=='mysql'">
+            id,last_name,gender,email
+        </if>
+        <if test="_databaseId=='oracle'">
+        </if>
+    </sql>
+
+    <select id="getEmployeesBySql" resultType="com.pp.bean.Employee">
+        select
+        from tbl_employee
+    </select>
+
+    <select id="getEmployeeByFirstLevelCache1" resultType="com.pp.bean.Employee">
+        select * from tbl_employee
+    </select>
+
+    <select id="getEmployeeByFirstLevelCache2" resultType="com.pp.bean.Employee">
+        select * from tbl_employee
+    </select>
+
+
+    <!--
+        使用批量操作插入数据
+    -->
+    <insert id="addEmployeeBatch">
+        insert into tbl_employee(last_name,email,gender)
+        values(#{lastName},#{email},#{gender})
+    </insert>
+
+
+    <!--
+        根据枚举获取值
+    -->
+    <resultMap id="employeeEnum" type="com.pp.bean.Employee">
+        <id column="id" property="id"/>
+        <result column="gender" property="gender"/>
+        <result column="last_name" property="lastName"/>
+        <result column="email" property="email"/>
+        <result column="empStatus" property="employeeStatus" typeHandler="com.pp.handler.EmployeeStatusTypeHandler"/>
+    </resultMap>
+
+    <select id="getEmployeeListByEnum" resultMap="employeeEnum">
+        select * from tbl_employee where empStatus = #{employeeStatus}
+    </select>
+</mapper>
